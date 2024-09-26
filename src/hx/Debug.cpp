@@ -8,6 +8,7 @@
 #include <hx/Telemetry.h>
 #include <hx/Unordered.h>
 #include <hx/OS.h>
+#include <SDL.h>
 
 
 #if defined(HXCPP_CATCH_SEGV) && !defined(_MSC_VER)
@@ -400,23 +401,37 @@ void StackContext::pushLastException()
    mIsUnwindingException = true;
 }
 
+void showSDLMessageBox(const char* message)
+{
+    SDL_MessageBoxButtonData buttons[] = {
+        {0, 0, "OK" }
+    };
 
+    SDL_MessageBoxData messageboxdata = {
+        SDL_MESSAGEBOX_INFORMATION, /* flags */
+        nullptr,                    /* .window (use NULL for no specific window) */
+        "Exception",                /* title */
+        message,                    /* message */
+        SDL_arraysize(buttons),      /* num buttons */
+        buttons,                    /* buttons */
+        nullptr                     /* color scheme (can be NULL) */
+    };
+
+    int buttonid;
+    SDL_ShowMessageBox(&messageboxdata, &buttonid);
+}
 
 void StackContext::dumpExceptionStack()
 {
-   #ifdef ANDROID
-   #define EXCEPTION_PRINT(...) \
-        __android_log_print(ANDROID_LOG_ERROR, "HXCPP", __VA_ARGS__)
-   #else
-   #define EXCEPTION_PRINT(...) \
-           printf(__VA_ARGS__)
-   #endif
+    std::string exceptionMessages;
 
-   int size = mExceptionStack.size();
-   for(int i = size - 1; i >= 0; i--)
-   {
-      EXCEPTION_PRINT("Called from %s\n", mExceptionStack[i].toDisplay().utf8_str());
-   }
+    int size = mExceptionStack.size();
+    for (int i = size - 1; i >= 0; i--)
+    {
+        exceptionMessages += "Called from " + std::string(mExceptionStack[i].toDisplay().utf8_str()) + "\n";
+    }
+
+    showSDLMessageBox(exceptionMessages.c_str());
 }
 
 
